@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -79,12 +78,12 @@ func (e *EventListener) Init() (err error) {
 }
 
 // Listen for incoming events from a kubernetes instance
-func (e *EventListener) Listen() (err error) {
-	listWatcher := e.newFilteredListWatchFromClient(e.clientSet.CoreV1().RESTClient(), "pods", fields.Everything())
+func (e *EventListener) Listen(resource *Resource) (err error) {
+	listWatcher := e.newFilteredListWatchFromClient(e.clientSet.CoreV1().RESTClient(), resource.resourceName, fields.Everything())
 
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
-	indexer, informer := cache.NewIndexerInformer(listWatcher, &v1.Pod{}, 0, cache.ResourceEventHandlerFuncs{
+	indexer, informer := cache.NewIndexerInformer(listWatcher, resource.resourceType, 0, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
@@ -105,7 +104,7 @@ func (e *EventListener) Listen() (err error) {
 		},
 	}, cache.Indexers{})
 
-	controller := NewController(queue, indexer, informer)
+	controller := NewController(queue, indexer, informer, resource.callback)
 
 	stop := make(chan struct{})
 	defer close(stop)

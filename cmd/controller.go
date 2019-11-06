@@ -5,26 +5,29 @@ import (
 	"log"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
+type callbackFn func(Event, interface{}) error
+
 // Controller for a queue
 type Controller struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
+	callback callbackFn
 }
 
 // NewController returns a pointer to Controller
-func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *Controller {
+func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, callback callbackFn) *Controller {
 	return &Controller{
 		informer: informer,
 		indexer:  indexer,
 		queue:    queue,
+		callback: callback,
 	}
 }
 
@@ -52,18 +55,7 @@ func (c *Controller) sync(event Event) (err error) {
 		return fmt.Errorf("object %s does not exists in %s event", event.Key, event.Action)
 	}
 
-	switch event.Action {
-	case ADD:
-		fmt.Printf("ADD for Pod %s\n", obj.(*v1.Pod).GetName())
-	case UPDATE:
-		fmt.Printf("UPDATE for Pod %s\n", obj.(*v1.Pod).GetName())
-	case DELETE:
-		fmt.Printf("DELETE for Pod %s\n", event.Key)
-	default:
-		return fmt.Errorf("unknown action %s", event.Action)
-	}
-
-	return
+	return c.callback(event, obj)
 }
 
 // handleErr checks if an error happened and makes sure we will retry later.

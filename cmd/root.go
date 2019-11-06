@@ -26,10 +26,8 @@ func NewK8sEventListenerCommand() *K8sEventListenerCommand {
 
 // Run the main application
 func (k *K8sEventListenerCommand) Run() int {
-	/*k.rootCommand.Flags().StringSliceP("namespace", "n", nil, "K8s namespace")
-	k.rootCommand.Flags().StringSliceP("label", "l", nil, "K8s endpoint matching label")
-	k.rootCommand.Flags().StringSliceP("port-name", "p", nil, "K8s endpoint matching port name")
-	k.rootCommand.Flags().Duration("timeout", 5*time.Second, "Proxy timeout")*/
+	k.rootCommand.Flags().StringP("resource", "r", "", "K8s resource to listen")
+	k.rootCommand.Flags().StringP("callback", "c", "", "Callback to be executed")
 
 	k.rootCommand.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		k.rootCommand.Flags().VisitAll(bindFlags)
@@ -44,7 +42,12 @@ func (k *K8sEventListenerCommand) Run() int {
 	}
 
 	k.rootCommand.RunE = func(cmd *cobra.Command, args []string) (err error) {
-		return k.eventListener.Listen()
+		r, err := NewResource(viper.GetString("resource"), viper.GetString("callback"))
+		if err != nil {
+			return err
+		}
+
+		return k.eventListener.Listen(r)
 	}
 
 	if err := k.rootCommand.Execute(); err != nil {
