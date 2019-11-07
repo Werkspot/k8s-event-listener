@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"k8s-event-listener/pkg/eventlistener"
+	"k8s-event-listener/pkg/resource"
 	"log"
 	"strings"
 
@@ -14,13 +17,15 @@ import (
 // K8sEventListenerCommand main application
 type K8sEventListenerCommand struct {
 	rootCommand   *cobra.Command
-	eventListener *EventListener
+	eventListener *eventlistener.EventListener
+	ctx           context.Context
 }
 
 // NewK8sEventListenerCommand returns a pointer to K8sEventListenerCommand
-func NewK8sEventListenerCommand() *K8sEventListenerCommand {
+func NewK8sEventListenerCommand(ctx context.Context) *K8sEventListenerCommand {
 	return &K8sEventListenerCommand{
 		rootCommand: getRootCommand(),
+		ctx:         ctx,
 	}
 }
 
@@ -32,22 +37,23 @@ func (k *K8sEventListenerCommand) Run() int {
 	k.rootCommand.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		k.rootCommand.Flags().VisitAll(bindFlags)
 
-		k.eventListener = NewEventListener(
-			viper.GetString("kube_config"),
-			viper.GetString("kube_context"),
-			k.handleError,
-		)
+		k.eventListener = eventlistener.NewEventListener(k.ctx, viper.GetString("kube_config"), viper.GetString("kube_context"), k.handleError)
 
 		return k.eventListener.Init()
 	}
 
 	k.rootCommand.RunE = func(cmd *cobra.Command, args []string) (err error) {
-		r, err := NewResource(viper.GetString("resource"), viper.GetString("callback"))
+		r, err := resource.NewResource(viper.GetString("resource"), viper.GetString("callback"))
 		if err != nil {
 			return err
 		}
 
-		return k.eventListener.Listen(r)
+		err = k.eventListener.Listen(r)
+		if err != nil {
+			return
+		}
+
+		select {}
 	}
 
 	if err := k.rootCommand.Execute(); err != nil {

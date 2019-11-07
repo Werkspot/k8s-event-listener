@@ -1,6 +1,8 @@
-package cmd
+package eventlistener
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -42,6 +44,7 @@ type EventListener struct {
 	kubeConfig, kubeContext string
 	clientSet               *kubernetes.Clientset
 	errHandler              func(error)
+	ctx                     context.Context
 }
 
 // Event holds an event info
@@ -49,12 +52,23 @@ type Event struct {
 	Key, Action string
 }
 
+// Resource to be listened
+type Resource struct {
+	ResourceName string
+	ResourceType runtime.Object
+	Callback     CallbackFn
+}
+
+// CallbackFn will be invoked when a matching event will be found
+type CallbackFn func(Event, interface{}) error
+
 // NewEventListener returns a pointer to EventListener
-func NewEventListener(kubeConfig, kubeContext string, errHandler func(error)) *EventListener {
+func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHandler func(error)) *EventListener {
 	return &EventListener{
 		kubeConfig:  kubeConfig,
 		kubeContext: kubeContext,
 		errHandler:  errHandler,
+		ctx:         ctx,
 	}
 }
 
@@ -79,11 +93,11 @@ func (e *EventListener) Init() (err error) {
 
 // Listen for incoming events from a kubernetes instance
 func (e *EventListener) Listen(resource *Resource) (err error) {
-	listWatcher := e.newFilteredListWatchFromClient(e.clientSet.CoreV1().RESTClient(), resource.resourceName, fields.Everything())
+	listWatcher := e.newFilteredListWatchFromClient(e.clientSet.CoreV1().RESTClient(), resource.ResourceName, fields.Everything())
 
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
-	indexer, informer := cache.NewIndexerInformer(listWatcher, resource.resourceType, 0, cache.ResourceEventHandlerFuncs{
+	indexer, informer := cache.NewIndexerInformer(listWatcher, resource.ResourceType, 0, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
@@ -104,14 +118,16 @@ func (e *EventListener) Listen(resource *Resource) (err error) {
 		},
 	}, cache.Indexers{})
 
-	controller := NewController(queue, indexer, informer, resource.callback)
-
 	stop := make(chan struct{})
-	defer close(stop)
+	c := NewController(queue, indexer, informer, resource.Callback, stop)
 
-	go controller.Run(1, stop)
+	go func() {
+		defer close(stop)
+		go c.Run(1)
+		<-e.ctx.Done()
+	}()
 
-	select {}
+	return
 }
 
 func (e *EventListener) checkConn() (err error) {
