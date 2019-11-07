@@ -1,4 +1,4 @@
-package cmd
+package eventlistener
 
 import (
 	"fmt"
@@ -11,23 +11,23 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-type callbackFn func(Event, interface{}) error
-
 // Controller for a queue
 type Controller struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
-	callback callbackFn
+	callback CallbackFn
+	stopCh   chan struct{}
 }
 
 // NewController returns a pointer to Controller
-func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, callback callbackFn) *Controller {
+func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller, callback CallbackFn, stopCh chan struct{}) *Controller {
 	return &Controller{
 		informer: informer,
 		indexer:  indexer,
 		queue:    queue,
 		callback: callback,
+		stopCh:   stopCh,
 	}
 }
 
@@ -80,24 +80,24 @@ func (c *Controller) handleErr(err error, key interface{}) {
 }
 
 // Run start processing queue events
-func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
+func (c *Controller) Run(threadiness int) {
 	defer runtime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	log.Println("Starting controller")
 
-	go c.informer.Run(stopCh)
+	go c.informer.Run(c.stopCh)
 
-	if !cache.WaitForCacheSync(stopCh, c.informer.HasSynced) {
-		runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+	if !cache.WaitForCacheSync(c.stopCh, c.informer.HasSynced) {
+		runtime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 		return
 	}
 
 	for i := 0; i < threadiness; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
+		go wait.Until(c.runWorker, time.Second, c.stopCh)
 	}
 
-	<-stopCh
+	<-c.stopCh
 	log.Println("Stopping controller")
 }
 
