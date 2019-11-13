@@ -11,6 +11,9 @@ COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/k8s-event-listener
 
 FROM scratch
+
+LABEL maintainer "Werkspot Technology <technology@werkspot.nl>"
+
 COPY --from=builder /k8s-event-listener/bin/. .
 
 ENTRYPOINT ["/k8s-event-listener"]
