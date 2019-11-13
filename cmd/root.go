@@ -37,7 +37,13 @@ func (k *K8sEventListenerCommand) Run() int {
 	k.rootCommand.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		k.rootCommand.Flags().VisitAll(bindFlags)
 
-		k.eventListener = eventlistener.NewEventListener(k.ctx, viper.GetString("kube_config"), viper.GetString("kube_context"), k.handleError)
+		k.eventListener = eventlistener.NewEventListener(
+			k.ctx,
+			viper.GetString("kube_config"),
+			viper.GetString("kube_context"),
+			k.handleError,
+			viper.GetString("verbose"),
+		)
 
 		return k.eventListener.Init()
 	}
@@ -96,6 +102,7 @@ func getRootCommand() (c *cobra.Command) {
 
 	c.PersistentFlags().String("kube-config", "", "Path to kubeconfig file")
 	c.PersistentFlags().String("kube-context", "", "Context to use")
+	c.PersistentFlags().StringP("verbose", "v", "0", "Verbose level")
 
 	return
 }

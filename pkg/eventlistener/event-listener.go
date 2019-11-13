@@ -2,6 +2,9 @@ package eventlistener
 
 import (
 	"context"
+	"flag"
+
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,6 +48,7 @@ type EventListener struct {
 	clientSet               *kubernetes.Clientset
 	errHandler              func(error)
 	ctx                     context.Context
+	logLevel                string
 }
 
 // Event holds an event info
@@ -63,12 +67,13 @@ type Resource struct {
 type CallbackFn func(Event, interface{}) error
 
 // NewEventListener returns a pointer to EventListener
-func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHandler func(error)) *EventListener {
+func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHandler func(error), logLevel string) *EventListener {
 	return &EventListener{
 		kubeConfig:  kubeConfig,
 		kubeContext: kubeContext,
 		errHandler:  errHandler,
 		ctx:         ctx,
+		logLevel:    logLevel,
 	}
 }
 
@@ -76,6 +81,13 @@ func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHa
 func (e *EventListener) Init() (err error) {
 	utilruntime.ErrorHandlers = []func(error){
 		e.errHandler,
+	}
+
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	err = klogFlags.Set("v", e.logLevel)
+	if err != nil {
+		return
 	}
 
 	config, err := e.getKubeConfig()
