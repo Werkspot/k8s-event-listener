@@ -10,7 +10,7 @@ RUN go mod download
 COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/k8s-event-listener
 
-FROM scratch
+FROM alpine
 
 LABEL maintainer "Werkspot Technology <technology@werkspot.nl>"
 
