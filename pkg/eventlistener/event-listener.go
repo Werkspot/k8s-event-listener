@@ -83,7 +83,7 @@ func (e *EventListener) Init() (err error) {
 		e.errHandler,
 	}
 
-	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klogFlags := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(klogFlags)
 	err = klogFlags.Set("v", e.logLevel)
 	if err != nil {
