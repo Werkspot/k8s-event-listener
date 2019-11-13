@@ -16,4 +16,4 @@ LABEL maintainer "Werkspot Technology <technology@werkspot.nl>"
 
 COPY --from=builder /k8s-event-listener/bin/. .
 
-ENTRYPOINT ["/k8s-event-listener"]
+CMD ["/k8s-event-listener"]
