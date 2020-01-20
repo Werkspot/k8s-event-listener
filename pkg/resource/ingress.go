@@ -3,32 +3,31 @@ package resource
 import (
 	"k8s-event-listener/pkg/eventlistener"
 
+	"k8s.io/api/networking/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	v1 "k8s.io/api/core/v1"
 )
 
 func init() {
-	resources = append(resources, getServiceAccount())
+	resources = append(resources, getIngress())
 }
 
-func getServiceAccount() resourceType {
+func getIngress() resourceType {
 	return resourceType{
-		name: []string{"sa", "serviceaccount", "serviceaccounts"},
+		name: []string{"i", "ingress", "ingresses"},
 		fn: func(callback string) (r *eventlistener.Resource, e error) {
 			r = &eventlistener.Resource{}
-			r.ResourceName = "serviceaccounts"
+			r.ResourceName = "ingresses"
 			r.RestClient = func(clientset *kubernetes.Clientset) *rest.Request {
-				return clientset.CoreV1().RESTClient().Get().Resource(r.ResourceName)
+				return clientset.NetworkingV1beta1().RESTClient().Get().Resource(r.ResourceName)
 			}
-			r.ResourceType = &v1.ServiceAccount{}
+			r.ResourceType = &v1beta1.Ingress{}
 			r.Callback = createCallbackFn(
 				callback,
 				r.ResourceName,
 				func(obj interface{}, meta *callBackMeta) {
 					if obj != nil {
-						objType := obj.(*v1.ServiceAccount)
+						objType := obj.(*v1beta1.Ingress)
 						meta.namespace = objType.GetNamespace()
 						meta.name = objType.GetName()
 					}

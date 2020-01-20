@@ -4,6 +4,7 @@ Listen for changes on specified resources and invokes the callback script
 Currently supporting:
 - pods
 - serviceaccounts
+- ingresses
 
 ## Usage
 
