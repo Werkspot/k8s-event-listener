@@ -8,6 +8,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.5.0
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	k8s.io/api v0.0.0-20191105025951-7aa4c14eac98
 	k8s.io/apimachinery v0.0.0-20191104185628-a55cb1b94bd3
 	k8s.io/client-go v0.0.0-20191105030321-52092c3c67fa
