@@ -68,7 +68,7 @@ type Resource struct {
 type CallbackFn func(Event, interface{}) error
 
 // RestClientFn will be used to get a REST request
-type RestClientFn func(clientset *kubernetes.Clientset) *rest.Request
+type RestClientFn func(clientset *kubernetes.Clientset) rest.Interface
 
 // NewEventListener returns a pointer to EventListener
 func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHandler func(error), logLevel string) *EventListener {
@@ -109,7 +109,7 @@ func (e *EventListener) Init() (err error) {
 
 // Listen for incoming events from a kubernetes instance
 func (e *EventListener) Listen(resource *Resource) (err error) {
-	listWatcher := e.newFilteredListWatchFromClient(resource.RestClient(e.clientSet), fields.Everything())
+	listWatcher := e.newFilteredListWatchFromClient(resource.RestClient(e.clientSet), resource.ResourceName, fields.Everything())
 
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
@@ -161,14 +161,15 @@ func (e *EventListener) getKubeConfig() (config *rest.Config, err error) {
 	).ClientConfig()
 }
 
-func (e *EventListener) newFilteredListWatchFromClient(r *rest.Request, fieldSelector fields.Selector) *cache.ListWatch {
+func (e *EventListener) newFilteredListWatchFromClient(c cache.Getter, resource string, fieldSelector fields.Selector) *cache.ListWatch {
 	optionsModifier := func(options *metav1.ListOptions) {
 		options.FieldSelector = fieldSelector.String()
 	}
 
 	listFunc := func(options metav1.ListOptions) (runtime.Object, error) {
 		optionsModifier(&options)
-		return r.
+		return c.Get().
+			Resource(resource).
 			VersionedParams(&options, metav1.ParameterCodec).
 			Do().
 			Get()
@@ -176,7 +177,8 @@ func (e *EventListener) newFilteredListWatchFromClient(r *rest.Request, fieldSel
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
 		options.Watch = true
 		optionsModifier(&options)
-		return r.
+		return c.Get().
+			Resource(resource).
 			VersionedParams(&options, metav1.ParameterCodec).
 			Watch()
 	}
