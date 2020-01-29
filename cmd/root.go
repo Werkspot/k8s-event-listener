@@ -19,6 +19,7 @@ type K8sEventListenerCommand struct {
 	rootCommand   *cobra.Command
 	eventListener *eventlistener.EventListener
 	ctx           context.Context
+	cErr          chan error
 }
 
 // NewK8sEventListenerCommand returns a pointer to K8sEventListenerCommand
@@ -26,6 +27,7 @@ func NewK8sEventListenerCommand(ctx context.Context) *K8sEventListenerCommand {
 	return &K8sEventListenerCommand{
 		rootCommand: getRootCommand(),
 		ctx:         ctx,
+		cErr:        make(chan error),
 	}
 }
 
@@ -41,7 +43,9 @@ func (k *K8sEventListenerCommand) Run() int {
 			k.ctx,
 			viper.GetString("kube_config"),
 			viper.GetString("kube_context"),
-			k.handleError,
+			func(err error) {
+				k.cErr <- err
+			},
 			viper.GetString("verbose"),
 		)
 
@@ -59,7 +63,10 @@ func (k *K8sEventListenerCommand) Run() int {
 			return
 		}
 
-		select {}
+		select {
+		case err = <-k.cErr:
+			return
+		}
 	}
 
 	if err := k.rootCommand.Execute(); err != nil {
