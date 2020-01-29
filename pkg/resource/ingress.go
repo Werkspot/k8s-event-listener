@@ -18,8 +18,8 @@ func getIngress() resourceType {
 		fn: func(callback string) (r *eventlistener.Resource, e error) {
 			r = &eventlistener.Resource{}
 			r.ResourceName = "ingresses"
-			r.RestClient = func(clientset *kubernetes.Clientset) *rest.Request {
-				return clientset.NetworkingV1beta1().RESTClient().Get().Resource(r.ResourceName)
+			r.RestClient = func(clientset *kubernetes.Clientset) rest.Interface {
+				return clientset.NetworkingV1beta1().RESTClient()
 			}
 			r.ResourceType = &v1beta1.Ingress{}
 			r.Callback = createCallbackFn(

@@ -19,8 +19,8 @@ func getServiceAccount() resourceType {
 		fn: func(callback string) (r *eventlistener.Resource, e error) {
 			r = &eventlistener.Resource{}
 			r.ResourceName = "serviceaccounts"
-			r.RestClient = func(clientset *kubernetes.Clientset) *rest.Request {
-				return clientset.CoreV1().RESTClient().Get().Resource(r.ResourceName)
+			r.RestClient = func(clientset *kubernetes.Clientset) rest.Interface {
+				return clientset.CoreV1().RESTClient()
 			}
 			r.ResourceType = &v1.ServiceAccount{}
 			r.Callback = createCallbackFn(
