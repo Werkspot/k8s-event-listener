@@ -43,9 +43,7 @@ func (k *K8sEventListenerCommand) Run() int {
 			k.ctx,
 			viper.GetString("kube_config"),
 			viper.GetString("kube_context"),
-			func(err error) {
-				k.cErr <- err
-			},
+			k.handleError,
 			viper.GetString("verbose"),
 		)
 
@@ -63,10 +61,8 @@ func (k *K8sEventListenerCommand) Run() int {
 			return
 		}
 
-		select {
-		case err = <-k.cErr:
-			return
-		}
+		err = <-k.cErr
+		return
 	}
 
 	if err := k.rootCommand.Execute(); err != nil {
