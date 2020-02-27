@@ -3,6 +3,11 @@ package eventlistener
 import (
 	"context"
 	"flag"
+	"net"
+	"net/url"
+	"time"
+
+	"github.com/heptiolabs/healthcheck"
 
 	"k8s.io/klog"
 
@@ -45,10 +50,12 @@ const (
 // EventListener allow us to listen on a kubernetes cluster for events
 type EventListener struct {
 	kubeConfig, kubeContext string
+	kubeAPIConfig           *rest.Config
 	clientSet               *kubernetes.Clientset
 	errHandler              func(error)
 	ctx                     context.Context
 	logLevel                string
+	healthHandler           healthcheck.Handler
 }
 
 // Event holds an event info
@@ -71,13 +78,20 @@ type CallbackFn func(Event, interface{}) error
 type RestClientFn func(clientset *kubernetes.Clientset) rest.Interface
 
 // NewEventListener returns a pointer to EventListener
-func NewEventListener(ctx context.Context, kubeConfig, kubeContext string, errHandler func(error), logLevel string) *EventListener {
+func NewEventListener(
+	ctx context.Context,
+	kubeConfig, kubeContext string,
+	errHandler func(error),
+	logLevel string,
+	healthHandler healthcheck.Handler,
+) *EventListener {
 	return &EventListener{
-		kubeConfig:  kubeConfig,
-		kubeContext: kubeContext,
-		errHandler:  errHandler,
-		ctx:         ctx,
-		logLevel:    logLevel,
+		kubeConfig:    kubeConfig,
+		kubeContext:   kubeContext,
+		errHandler:    errHandler,
+		ctx:           ctx,
+		logLevel:      logLevel,
+		healthHandler: healthHandler,
 	}
 }
 
@@ -94,12 +108,12 @@ func (e *EventListener) Init() (err error) {
 		return
 	}
 
-	config, err := e.getKubeConfig()
+	e.kubeAPIConfig, err = e.getKubeConfig()
 	if err != nil {
 		return
 	}
 
-	e.clientSet, err = kubernetes.NewForConfig(config)
+	e.clientSet, err = kubernetes.NewForConfig(e.kubeAPIConfig)
 	if err != nil {
 		return
 	}
@@ -147,7 +161,18 @@ func (e *EventListener) Listen(resource *Resource) (err error) {
 }
 
 func (e *EventListener) checkConn() (err error) {
-	return
+	addr, err := e.getKubeAPIAddr()
+	if err != nil {
+		return err
+	}
+
+	check := healthcheck.TCPDialCheck(addr, 1*time.Second)
+	e.healthHandler.AddLivenessCheck(
+		"kubeapi",
+		check,
+	)
+
+	return check()
 }
 
 func (e *EventListener) getKubeConfig() (config *rest.Config, err error) {
@@ -183,4 +208,30 @@ func (e *EventListener) newFilteredListWatchFromClient(c cache.Getter, resource 
 			Watch()
 	}
 	return &cache.ListWatch{ListFunc: listFunc, WatchFunc: watchFunc}
+}
+
+func (e *EventListener) getKubeAPIAddr() (string, error) {
+	u, err := url.Parse(e.kubeAPIConfig.Host)
+	if err != nil {
+		return "", err
+	}
+
+	host := u.Hostname()
+	port := func() string {
+		p := u.Port()
+		if p != "" {
+			return p
+		}
+
+		return func() string {
+			switch u.Scheme {
+			case "https":
+				return "443"
+			}
+
+			return "80"
+		}()
+	}()
+
+	return net.JoinHostPort(host, port), nil
 }
