@@ -20,7 +20,9 @@ Flags:
   -h, --help                  help for k8s-event-listener
       --kube-config string    Path to kubeconfig file
       --kube-context string   Context to use
+  -p, --probe-port string     HTTP port to listen for liveness/readiness probes (default "8080")
   -r, --resource string       K8s resource to listen
+  -v, --verbose string        Verbose level (default "0")
 ```
 
 This application has been designed to live inside the cluster, it uses the injected service-account tokens to interact 
@@ -35,6 +37,14 @@ Matching resource events will be sent to callback script as arguments:
 
 Is important to mention that this application uses a cache system that needs to be populated, so during bootstrap, 
 all matching resources will be evaluated as insertions.
+
+## Healthcheck
+An HTTP server will be created listening to 8080 (can be overwritten via -p flag) with two available probe URLs
+
+- `/live` to be used in the liveness configuration
+- `/ready` to be used in the readiness configuration
+
+Currently only checks for kube-api connectivity.
 
 ### Example
 

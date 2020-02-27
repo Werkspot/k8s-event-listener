@@ -6,10 +6,12 @@ import (
 	"k8s-event-listener/pkg/eventlistener"
 	"k8s-event-listener/pkg/resource"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/spf13/pflag"
 
+	"github.com/heptiolabs/healthcheck"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,19 +22,22 @@ type K8sEventListenerCommand struct {
 	eventListener *eventlistener.EventListener
 	ctx           context.Context
 	cErr          chan error
+	healthHandler healthcheck.Handler
 }
 
 // NewK8sEventListenerCommand returns a pointer to K8sEventListenerCommand
 func NewK8sEventListenerCommand(ctx context.Context) *K8sEventListenerCommand {
 	return &K8sEventListenerCommand{
-		rootCommand: getRootCommand(),
-		ctx:         ctx,
-		cErr:        make(chan error),
+		rootCommand:   getRootCommand(),
+		ctx:           ctx,
+		cErr:          make(chan error),
+		healthHandler: healthcheck.NewHandler(),
 	}
 }
 
 // Run the main application
 func (k *K8sEventListenerCommand) Run() int {
+	k.rootCommand.Flags().StringP("probe-port", "p", "8080", "HTTP port to listen for liveness/readiness probes")
 	k.rootCommand.Flags().StringP("resource", "r", "", "K8s resource to listen")
 	k.rootCommand.Flags().StringP("callback", "c", "", "Callback to be executed")
 
@@ -45,21 +50,31 @@ func (k *K8sEventListenerCommand) Run() int {
 			viper.GetString("kube_context"),
 			k.handleError,
 			viper.GetString("verbose"),
+			k.healthHandler,
 		)
 
 		return k.eventListener.Init()
 	}
 
 	k.rootCommand.RunE = func(cmd *cobra.Command, args []string) (err error) {
-		r, err := resource.NewResource(viper.GetString("resource"), viper.GetString("callback"))
-		if err != nil {
-			return err
-		}
+		go func() {
+			log.Println(fmt.Sprintf("Server started, listening in :%s", viper.GetString("probe_port")))
+			k.cErr <- http.ListenAndServe(fmt.Sprintf(":%s", viper.GetString("probe_port")), k.healthHandler)
+		}()
 
-		err = k.eventListener.Listen(r)
-		if err != nil {
-			return
-		}
+		go func() {
+			r, err := resource.NewResource(viper.GetString("resource"), viper.GetString("callback"))
+			if err != nil {
+				k.cErr <- err
+				return
+			}
+
+			err = k.eventListener.Listen(r)
+			if err != nil {
+				k.cErr <- err
+				return
+			}
+		}()
 
 		err = <-k.cErr
 		return
