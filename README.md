@@ -5,9 +5,10 @@
 Listen for changes on specified resources and invokes the callback script
 
 Currently supporting:
+- certificatesigningrequests
+- ingresses
 - pods
 - serviceaccounts
-- ingresses
 
 ## Usage
 
