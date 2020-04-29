@@ -1,4 +1,7 @@
 # K8s Event listener
+
+[![Build Status](https://travis-ci.com/Werkspot/k8s-event-listener.svg?branch=master)](https://travis-ci.com/Werkspot/k8s-event-listener)
+
 Listen for changes on specified resources and invokes the callback script
 
 Currently supporting:
