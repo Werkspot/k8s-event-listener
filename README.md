@@ -6,6 +6,7 @@ Listen for changes on specified resources and invokes the callback script
 
 Currently supporting:
 - certificatesigningrequests
+- cronjobs
 - ingresses
 - pods
 - serviceaccounts
