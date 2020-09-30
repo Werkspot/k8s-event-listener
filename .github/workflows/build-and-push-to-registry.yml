@@ -31,6 +31,7 @@ jobs:
             VERSION=latest
           fi
           echo ::set-output name=version::${VERSION}
+          echo ::set-output name=tags::${{ env.GITHUB_REPOSITORY }}:${VERSION},ghcr.io/${{ env.GITHUB_REPOSITORY }}:${VERSION}
 
       -
         name: Setup Docker
@@ -50,10 +51,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
-
       -
         name: Build and push
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: '${{ env.GITHUB_REPOSITORY }}:${{ steps.prep.outputs.version }},ghcr.io/${{ env.GITHUB_REPOSITORY }}:${{ steps.prep.outputs.version }}'
+          tags: ${{ steps.prep.outputs.tags }}
