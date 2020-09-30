@@ -31,7 +31,7 @@ jobs:
             VERSION=latest
           fi
           echo ::set-output name=version::${VERSION}
-          echo ::set-output name=tags::${{ env.GITHUB_REPOSITORY }}:${VERSION},ghcr.io/${{ env.GITHUB_REPOSITORY }}:${VERSION}
+          echo ::set-output name=tags::${GITHUB_REPOSITORY}:${VERSION},ghcr.io/${GITHUB_REPOSITORY}:${VERSION}
 
       -
         name: Setup Docker
