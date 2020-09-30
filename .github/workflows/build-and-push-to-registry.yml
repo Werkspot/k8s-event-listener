@@ -30,8 +30,9 @@ jobs:
           if [[ $VERSION == "master" ]]; then
             VERSION=latest
           fi
+          TAGS=$(echo "${GITHUB_REPOSITORY}:${VERSION},ghcr.io/${GITHUB_REPOSITORY}:${VERSION}" | tr '[:upper:]' '[:lower:]')
           echo ::set-output name=version::${VERSION}
-          echo ::set-output name=tags::${GITHUB_REPOSITORY}:${VERSION},ghcr.io/${GITHUB_REPOSITORY}:${VERSION}
+          echo ::set-output name=tags::${TAGS}
 
       -
         name: Setup Docker
