@@ -196,7 +196,7 @@ func (e *EventListener) newFilteredListWatchFromClient(c cache.Getter, resource 
 		return c.Get().
 			Resource(resource).
 			VersionedParams(&options, metav1.ParameterCodec).
-			Do().
+			Do(context.TODO()).
 			Get()
 	}
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
@@ -205,7 +205,7 @@ func (e *EventListener) newFilteredListWatchFromClient(c cache.Getter, resource 
 		return c.Get().
 			Resource(resource).
 			VersionedParams(&options, metav1.ParameterCodec).
-			Watch()
+			Watch(context.TODO())
 	}
 	return &cache.ListWatch{ListFunc: listFunc, WatchFunc: watchFunc}
 }

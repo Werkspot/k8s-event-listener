@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine AS builder
+FROM golang:1.15-alpine AS builder
 RUN mkdir -p /k8s-event-listener
 WORKDIR /k8s-event-listener
 
@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/k8s-event-listener
 
 FROM alpine
 
-LABEL maintainer "Werkspot Technology <technology@werkspot.nl>"
+LABEL maintainer="Werkspot <technology@werkspot.com>"
 
 COPY --from=builder /k8s-event-listener/bin/. .
 
