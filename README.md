@@ -10,6 +10,7 @@ Currently supporting:
 - ingresses
 - pods
 - serviceaccounts
+- nodes
 
 ## Usage
 
