@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"k8s.io/api/certificates/v1beta1"
+	v1 "k8s.io/api/certificates/v1"
 )
 
 func init() {
@@ -20,15 +20,15 @@ func getCertificateSigningRequest() resourceType {
 			r = &eventlistener.Resource{}
 			r.ResourceName = "certificatesigningrequests"
 			r.RestClient = func(clientset *kubernetes.Clientset) rest.Interface {
-				return clientset.CertificatesV1beta1().RESTClient()
+				return clientset.CertificatesV1().RESTClient()
 			}
-			r.ResourceType = &v1beta1.CertificateSigningRequest{}
+			r.ResourceType = &v1.CertificateSigningRequest{}
 			r.Callback = createCallbackFn(
 				callback,
 				r.ResourceName,
 				func(obj interface{}, meta *callBackMeta) {
 					if obj != nil {
-						objType := obj.(*v1beta1.CertificateSigningRequest)
+						objType := obj.(*v1.CertificateSigningRequest)
 						meta.namespace = objType.GetNamespace()
 						meta.name = objType.GetName()
 					}
