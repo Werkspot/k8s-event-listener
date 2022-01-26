@@ -7,7 +7,7 @@ test:
 	go test -race ./...
 
 lint: install-tools
-	golangci-lint run
+	golangci-lint run --timeout=3m
 
 install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.0
