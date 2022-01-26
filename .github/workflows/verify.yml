@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.14.x, 1.15.x]
+        go-version: [1.17.x]
     env:
       CI: 1
       GO111MODULE: on
