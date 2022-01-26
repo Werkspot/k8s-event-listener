@@ -7,21 +7,10 @@ test:
 	go test -race ./...
 
 lint: install-tools
-ifeq ($(CI),1)
-	fgt goimports -d .
-else
-	fgt goimports -w .
-endif
-	fgt golint ./...
-	fgt go vet ./...
-	fgt go fmt ./...
-	fgt errcheck -ignore Close  ./...
+	golangci-lint run
 
 install-tools:
-	GO111MODULE=off go get -u golang.org/x/lint/golint
-	GO111MODULE=off go get -u golang.org/x/tools/cmd/goimports
-	GO111MODULE=off go get -u github.com/GeertJohan/fgt
-	GO111MODULE=off go get -u github.com/kisielk/errcheck
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.0
 
 go-mod:
 	go mod tidy
