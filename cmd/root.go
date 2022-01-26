@@ -88,16 +88,6 @@ func (k *K8sEventListenerCommand) Run() int {
 	return 0
 }
 
-func (k *K8sEventListenerCommand) populateConfig() (err error) {
-	viper.AddConfigPath(".")
-
-	viper.SetConfigName(".config")
-	viper.SetEnvPrefix("K8S_EVENT_LISTENER")
-	viper.AutomaticEnv()
-
-	return viper.ReadInConfig()
-}
-
 func (k *K8sEventListenerCommand) handleError(err error) {
 	log.Println(fmt.Sprintf("[ERROR] %s",
 		err.Error(),
