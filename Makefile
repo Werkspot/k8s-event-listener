@@ -1,7 +1,7 @@
 CI?=0
 
 update:
-	go get -u -m && go mod tidy
+	go get -u -d && go mod tidy
 
 test:
 	go test -race ./...
