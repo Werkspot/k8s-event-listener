@@ -3,7 +3,7 @@ package resource
 import (
 	"k8s-event-listener/pkg/eventlistener"
 
-	"k8s.io/api/networking/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -19,15 +19,15 @@ func getIngress() resourceType {
 			r = &eventlistener.Resource{}
 			r.ResourceName = "ingresses"
 			r.RestClient = func(clientset *kubernetes.Clientset) rest.Interface {
-				return clientset.NetworkingV1beta1().RESTClient()
+				return clientset.NetworkingV1().RESTClient()
 			}
-			r.ResourceType = &v1beta1.Ingress{}
+			r.ResourceType = &v1.Ingress{}
 			r.Callback = createCallbackFn(
 				callback,
 				r.ResourceName,
 				func(obj interface{}, meta *callBackMeta) {
 					if obj != nil {
-						objType := obj.(*v1beta1.Ingress)
+						objType := obj.(*v1.Ingress)
 						meta.namespace = objType.GetNamespace()
 						meta.name = objType.GetName()
 					}
