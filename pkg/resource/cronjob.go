@@ -3,7 +3,7 @@ package resource
 import (
 	"k8s-event-listener/pkg/eventlistener"
 
-	"k8s.io/api/batch/v1beta1"
+	v1 "k8s.io/api/batch/v1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -20,15 +20,15 @@ func getCronjob() resourceType {
 			r = &eventlistener.Resource{}
 			r.ResourceName = "cronjobs"
 			r.RestClient = func(clientset *kubernetes.Clientset) rest.Interface {
-				return clientset.BatchV1beta1().RESTClient()
+				return clientset.BatchV1().RESTClient()
 			}
-			r.ResourceType = &v1beta1.CronJob{}
+			r.ResourceType = &v1.CronJob{}
 			r.Callback = createCallbackFn(
 				callback,
 				r.ResourceName,
 				func(obj interface{}, meta *callBackMeta) {
 					if obj != nil {
-						objType := obj.(*v1beta1.CronJob)
+						objType := obj.(*v1.CronJob)
 						meta.namespace = objType.GetNamespace()
 						meta.name = objType.GetName()
 					}
